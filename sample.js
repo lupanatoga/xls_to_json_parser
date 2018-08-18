@@ -1,13 +1,27 @@
 const parseJSONResponse = (response) => {
 
     const contracheque_sheet = response["Contracheque"];
-    const subsidio_sheet = response["Subsídio - Direitos Pessoais"];
+    const subsidio_sheet = response["Subsídio - Direitos Pessoais"] || response['Subsídio -Vantagens Pessoais'];
     const indenizacoes_sheet = response["Indenizações"];
-    const direitos_eventuais = response["Direitos Eventuais"];
+    const direitos_eventuais = response["Direitos Eventuais"] || response['Vantagens Eventuais'];
     const dados_cadastrais = response["Dados Cadastrais"];
 
     let orgao;
     let mes_ano_referencia;
+
+    let posicaoCabecalho = 999999999999999;
+
+    const setPosicaoCabecalho = (linha, posicao) => {
+        if (linha.length > 0 && linha[0] && (linha[0].toLowerCase().includes('cpf'))) {
+            posicaoCabecalho = posicao;
+        }
+    };
+
+    const isLinhaServidor = (linha, pos) => {
+        return  pos > posicaoCabecalho &&
+                linha.length > 1 &&
+                !!linha[1];
+    };
 
     const parseNumber = (stringNumber) => {
         if (!stringNumber) return 0;
@@ -17,8 +31,9 @@ const parseJSONResponse = (response) => {
 
     const servidoresMap = {};
 
+    contracheque_sheet.forEach((linha, pos) => {
+        setPosicaoCabecalho(linha, pos);
 
-    contracheque_sheet.forEach((linha) => {
         if (linha.length > 0 && linha[0] === 'Órgão') {
             linha = linha.filter((campo) => !!campo);
             orgao = linha[1];
@@ -29,7 +44,7 @@ const parseJSONResponse = (response) => {
             mes_ano_referencia = linha[1];
         }
 
-        if(linha.length > 0 && linha[0] && linha[0].includes('xxx')) {
+        if(isLinhaServidor(linha, pos)) {
 
             let [cpf, nome, cargo, lotacao, subsidio, direitos_pessoais, indenizacoes,
                 direitos_eventuais, total_de_rendimentos, previdencia_publica,
@@ -63,9 +78,11 @@ const parseJSONResponse = (response) => {
         }
     });
 
+    posicaoCabecalho = 99999999999;
+    subsidio_sheet.forEach((linha, pos) => {
+        setPosicaoCabecalho(linha, pos);
 
-    subsidio_sheet.forEach((linha) => {
-        if(linha.length > 0 && linha[0] && linha[0].includes('xxx')) {
+        if(isLinhaServidor(linha, pos)) {
             let [cpf, nome, abono_de_permanencia, subsidio_outra1, subsidio_detalhe1,
                 subsidio_outra2, subsidio_detalhe2, total_de_direitos_pessoais] = linha;
 
@@ -89,8 +106,12 @@ const parseJSONResponse = (response) => {
         }
     });
 
-    indenizacoes_sheet.forEach((linha) => {
-        if(linha.length > 0 && linha[0] && linha[0].includes('xxx')) {
+
+    posicaoCabecalho = 99999999999;
+    indenizacoes_sheet.forEach((linha, pos) => {
+        setPosicaoCabecalho(linha, pos);
+
+        if(isLinhaServidor(linha, pos)) {
             let [cpf, nome, auxilio_alimentacao, auxilio_pre_escolar, auxilio_saude,
                 auxilio_natalidade, auxilio_moradia, ajuda_de_custo, indenizacoes_outra1,
                 indenizacoes_detalhe1, indenizacoes_outra2, indenizacoes_detalhe2,
@@ -125,8 +146,12 @@ const parseJSONResponse = (response) => {
         }
     });
 
-    direitos_eventuais.forEach((linha) => {
-        if(linha.length > 0 && linha[0] && linha[0].includes('xxx')) {
+
+    posicaoCabecalho = 99999999999;
+    direitos_eventuais.forEach((linha, pos) => {
+        setPosicaoCabecalho(linha, pos);
+
+        if(isLinhaServidor(linha, pos)) {
             let [cpf, nome, abono_contitucional_de_1_3_de_ferias, indenizacao_de_ferias, antecipacao_de_ferias,
                 gratificacao_natalina, antecipacao_de_gratificacao_natalina, substituicao, gratificacao_por_exercicio_cumulativo,
                 gratificacao_por_encargo_curso_concurso, pagamento_em_retroativos, jeton, direitos_eventuais_outra1, direitos_eventuais_detalhe1,
@@ -164,12 +189,14 @@ const parseJSONResponse = (response) => {
         }
     });
 
-    dados_cadastrais.forEach((linha) => {
-        if(linha.length > 0 && linha[0] && linha[0].includes('xxx')) {
+    posicaoCabecalho = 99999999999;
+    dados_cadastrais.forEach((linha, pos) => {
+        setPosicaoCabecalho(linha, pos);
+
+        if(isLinhaServidor(linha, pos)) {
             let [cpf, nome, matricula, lotacao_de_origem, orgao_de_origem, cargo_de_origem] = linha;
 
             const servidor = servidoresMap[nome];
-
 
             const dadosCadastraisServidor = {
                 nome, matricula, lotacao_de_origem, orgao_de_origem, cargo_de_origem
