@@ -2,6 +2,9 @@ var express = require('express');
 var app = express();
 var bodyParser = require('body-parser');
 var multer = require('multer');
+var fs = require('fs');
+
+const jsonParser = require('./sample');
 
 xlsx = require('xlsx');
 
@@ -42,14 +45,14 @@ app.post('/upload', function(req, res) {
         }
 
         var wb = xlsx.readFile(req.file.path);
-
+        fs.unlinkSync(req.file.path);
         var to_json = function to_json(workbook) {
             var result = {};
             workbook.SheetNames.forEach(function(sheetName) {
                 var roa = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], {header:1});
                 if(roa.length) result[sheetName] = roa;
             });
-            return result;
+            return jsonParser.parseJSONResponse(result);
         };
 
         res.json(to_json(wb));
